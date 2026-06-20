@@ -50,7 +50,13 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - name: gitleaks
-        uses: gitleaks/gitleaks-action@v2
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      - name: Scan for hardcoded secrets (license-free)
+        run: |
+          # High-signal real-secret patterns. Synthetic test keys (okra_test_key,
+          # ci_smoke_key) and example data are low-entropy and don't match.
+          if git grep -nIE \
+            'sk-[A-Za-z0-9]{20}|sk_live_[A-Za-z0-9]{16}|pk_live_[A-Za-z0-9]{16}|gh[pousr]_[A-Za-z0-9]{30}|AKIA[0-9A-Z]{16}|AIza[0-9A-Za-z_-]{30}|xox[baprs]-[0-9A-Za-z-]{10}|-----BEGIN [A-Z ]*PRIVATE KEY-----' \
+            -- ':(exclude)pnpm-lock.yaml'; then
+            echo "::error::Potential hardcoded secret found above"; exit 1
+          fi
+          echo "No hardcoded secrets found."
