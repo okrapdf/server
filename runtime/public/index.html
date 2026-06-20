@@ -1,0 +1,763 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>okraPDF Self-Host</title>
+    <style>
+      :root {
+        color-scheme: light;
+        --ink: #171717;
+        --muted: #5f6368;
+        --line: #d9dde3;
+        --panel: #f7f8fa;
+        --surface: #ffffff;
+        --accent: #0f766e;
+        --warn: #9a3412;
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      body {
+        margin: 0;
+        color: var(--ink);
+        background: var(--surface);
+        font-family: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      }
+
+      main {
+        width: min(1180px, calc(100vw - 32px));
+        margin: 0 auto;
+        padding: 32px 0;
+      }
+
+      header {
+        display: flex;
+        align-items: flex-end;
+        justify-content: space-between;
+        gap: 24px;
+        border-bottom: 1px solid var(--line);
+        padding-bottom: 18px;
+      }
+
+      h1 {
+        margin: 0;
+        font-size: 28px;
+        line-height: 1.1;
+        font-weight: 700;
+      }
+
+      h2 {
+        margin: 0 0 12px;
+        font-size: 16px;
+        line-height: 1.25;
+      }
+
+      p {
+        margin: 8px 0 0;
+        color: var(--muted);
+      }
+
+      .status {
+        display: inline-flex;
+        align-items: center;
+        min-height: 32px;
+        border: 1px solid var(--line);
+        border-radius: 6px;
+        padding: 0 10px;
+        font-size: 14px;
+        font-weight: 600;
+      }
+
+      .status[data-ok="true"] {
+        border-color: color-mix(in srgb, var(--accent) 42%, var(--line));
+        color: var(--accent);
+      }
+
+      .status[data-ok="false"] {
+        border-color: color-mix(in srgb, var(--warn) 42%, var(--line));
+        color: var(--warn);
+      }
+
+      .grid {
+        display: grid;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        gap: 16px;
+        margin: 24px 0;
+      }
+
+      section {
+        border: 1px solid var(--line);
+        border-radius: 8px;
+        padding: 16px;
+        background: var(--panel);
+      }
+
+      dl {
+        display: grid;
+        grid-template-columns: minmax(96px, auto) 1fr;
+        gap: 8px 12px;
+        margin: 0;
+        font-size: 14px;
+      }
+
+      dt {
+        color: var(--muted);
+      }
+
+      dd {
+        margin: 0;
+        font-weight: 600;
+        overflow-wrap: anywhere;
+      }
+
+      code {
+        border: 1px solid var(--line);
+        border-radius: 5px;
+        background: var(--surface);
+        padding: 1px 5px;
+        font: 13px ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+      }
+
+      ul {
+        display: grid;
+        gap: 8px;
+        margin: 0;
+        padding: 0;
+        list-style: none;
+      }
+
+      li {
+        overflow-wrap: anywhere;
+      }
+
+      .toolbar {
+        display: flex;
+        gap: 8px;
+        align-items: center;
+        flex-wrap: wrap;
+      }
+
+      input,
+      select,
+      button {
+        min-height: 36px;
+        border: 1px solid var(--line);
+        border-radius: 6px;
+        background: var(--surface);
+        color: var(--ink);
+        font: inherit;
+        font-size: 14px;
+      }
+
+      input,
+      select {
+        padding: 0 10px;
+      }
+
+      input {
+        min-width: min(100%, 260px);
+        flex: 1;
+      }
+
+      button {
+        padding: 0 12px;
+        font-weight: 700;
+        color: #ffffff;
+        background: var(--accent);
+        border-color: var(--accent);
+      }
+
+      pre {
+        max-height: 360px;
+        overflow: auto;
+        margin: 12px 0 0;
+        border: 1px solid var(--line);
+        border-radius: 6px;
+        background: var(--surface);
+        padding: 12px;
+        font: 12px/1.45 ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+      }
+
+      .columns {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 16px;
+        margin-top: 16px;
+      }
+
+      .detail-list li {
+        display: grid;
+        gap: 4px;
+        border-top: 1px solid var(--line);
+        padding-top: 8px;
+      }
+
+      .detail-list li:first-child {
+        border-top: 0;
+        padding-top: 0;
+      }
+
+      .detail-list strong {
+        font-size: 14px;
+      }
+
+      .muted-line {
+        color: var(--muted);
+        font-size: 13px;
+      }
+
+      .subpanel {
+        min-width: 0;
+      }
+
+      .wide {
+        grid-column: 1 / -1;
+      }
+
+      @media (max-width: 880px) {
+        header {
+          align-items: flex-start;
+          flex-direction: column;
+        }
+
+        .grid {
+          grid-template-columns: 1fr;
+        }
+
+        .columns {
+          grid-template-columns: 1fr;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <main>
+      <header>
+        <div>
+          <h1>okraPDF Self-Host</h1>
+          <p id="runtime-summary">Loading runtime status.</p>
+        </div>
+        <span class="status" id="runtime-status">Checking</span>
+      </header>
+
+      <div class="grid">
+        <section>
+          <h2>Runtime</h2>
+          <dl>
+            <dt>UI</dt>
+            <dd id="ui-runtime">-</dd>
+            <dt>API</dt>
+            <dd id="api-runtime">-</dd>
+            <dt>Targets</dt>
+            <dd id="deploy-targets">-</dd>
+          </dl>
+        </section>
+
+        <section>
+          <h2>Catalog</h2>
+          <dl>
+            <dt>Recipes</dt>
+            <dd id="recipe-count">-</dd>
+            <dt>Capabilities</dt>
+            <dd id="capability-count">-</dd>
+            <dt>n8n</dt>
+            <dd id="n8n-count">-</dd>
+          </dl>
+        </section>
+
+        <section>
+          <h2>Bootstrap</h2>
+          <dl>
+            <dt>Owner</dt>
+            <dd id="bootstrap-owner">-</dd>
+            <dt>Registration</dt>
+            <dd id="bootstrap-registration">-</dd>
+            <dt>API key</dt>
+            <dd id="bootstrap-api-key">-</dd>
+          </dl>
+          <ul id="bootstrap-protected-routes"></ul>
+        </section>
+
+        <section>
+          <h2>Endpoints</h2>
+          <ul id="endpoint-list"></ul>
+        </section>
+
+        <section class="wide">
+          <h2>Docker Separation</h2>
+          <div class="columns">
+            <div class="subpanel">
+              <h2>Networks</h2>
+              <ul class="detail-list" id="network-list"></ul>
+            </div>
+            <div class="subpanel">
+              <h2>Services</h2>
+              <ul class="detail-list" id="service-list"></ul>
+            </div>
+          </div>
+        </section>
+
+        <section class="wide">
+          <h2>Recipes And Capabilities</h2>
+          <div class="columns">
+            <div class="subpanel">
+              <h2>Workflow Recipes</h2>
+              <ul class="detail-list" id="recipe-list"></ul>
+            </div>
+            <div class="subpanel">
+              <h2>Capability Namespaces</h2>
+              <ul class="detail-list" id="capability-list"></ul>
+            </div>
+          </div>
+        </section>
+
+        <section class="wide">
+          <h2>Document</h2>
+          <form class="toolbar" id="document-form">
+            <input id="document-id" name="doc" autocomplete="off" placeholder="doc-self-host-upload" />
+            <select id="document-view" name="view">
+              <option value="document">Document</option>
+              <option value="graph">Graph</option>
+              <option value="parser">Parser</option>
+              <option value="audit">Audit</option>
+              <option value="redact">Redact</option>
+              <option value="review">Review</option>
+            </select>
+            <input id="workflow-run-id" name="run" autocomplete="off" placeholder="run id" />
+            <button type="submit">Open</button>
+          </form>
+
+          <p id="document-summary">No document selected.</p>
+          <div class="columns">
+            <div class="subpanel">
+              <h2>Graph</h2>
+              <dl>
+                <dt>Pages</dt>
+                <dd id="document-pages">-</dd>
+                <dt>Blocks</dt>
+                <dd id="document-blocks">-</dd>
+                <dt>Findings</dt>
+                <dd id="document-findings">-</dd>
+                <dt>Redactions</dt>
+                <dd id="document-redactions">-</dd>
+                <dt>Reviews</dt>
+                <dd id="document-reviews">-</dd>
+              </dl>
+            </div>
+
+            <div class="subpanel">
+              <h2>Workflow Run</h2>
+              <dl>
+                <dt>Run</dt>
+                <dd id="workflow-run-label">-</dd>
+                <dt>Recipe</dt>
+                <dd id="workflow-run-recipe">-</dd>
+                <dt>Status</dt>
+                <dd id="workflow-run-status">-</dd>
+                <dt>Mode</dt>
+                <dd id="workflow-run-mode">-</dd>
+              </dl>
+            </div>
+          </div>
+
+          <div class="columns">
+            <div class="subpanel">
+              <h2>Parser Output</h2>
+              <ul class="detail-list" id="block-list"></ul>
+            </div>
+
+            <div class="subpanel">
+              <h2>Audit Findings</h2>
+              <ul class="detail-list" id="finding-list"></ul>
+            </div>
+          </div>
+
+          <div class="columns">
+            <div class="subpanel">
+              <h2>Redaction Review</h2>
+              <ul class="detail-list" id="redaction-list"></ul>
+            </div>
+
+            <div class="subpanel">
+              <h2>Review Queue</h2>
+              <ul class="detail-list" id="review-list"></ul>
+            </div>
+          </div>
+
+          <div class="columns">
+            <div class="subpanel">
+              <h2>Lineage</h2>
+              <ul class="detail-list" id="lineage-list"></ul>
+            </div>
+
+            <div class="subpanel">
+              <h2>Capability Runs</h2>
+              <ul class="detail-list" id="capability-run-list"></ul>
+            </div>
+          </div>
+
+          <div class="columns">
+            <div class="subpanel">
+              <h2>CLI Handoff</h2>
+              <pre id="cli-commands">Select a document to render workflow commands.</pre>
+            </div>
+
+            <div class="subpanel">
+              <h2>Run Source</h2>
+              <pre id="run-json">{}</pre>
+            </div>
+          </div>
+
+          <div class="columns">
+            <div class="subpanel wide">
+              <h2>Graph Source</h2>
+              <pre id="graph-json">{}</pre>
+            </div>
+          </div>
+        </section>
+      </div>
+    </main>
+
+    <script>
+      const byId = (id) => document.getElementById(id);
+      const safeArray = (value) => Array.isArray(value) ? value : [];
+      const isRecord = (value) => value && typeof value === "object" && !Array.isArray(value);
+      const text = (id, value) => {
+        byId(id).textContent = value;
+      };
+
+      const codeList = (id, values, empty = "None.") => {
+        const node = byId(id);
+        const items = (values.length ? values : [empty]).map((value) => {
+          const item = document.createElement("li");
+          const code = document.createElement("code");
+          code.textContent = value;
+          item.append(code);
+          return item;
+        });
+        node.replaceChildren(...items);
+      };
+
+      const detailList = (id, rows, empty = "None.") => {
+        const node = byId(id);
+        const items = (rows.length ? rows : [{ title: empty }]).map((row) => {
+          const item = document.createElement("li");
+          const title = document.createElement("strong");
+          title.textContent = row.title;
+          item.append(title);
+          if (row.detail) {
+            const detail = document.createElement("span");
+            detail.className = "muted-line";
+            detail.textContent = row.detail;
+            item.append(detail);
+          }
+          if (row.code) {
+            const code = document.createElement("code");
+            code.textContent = row.code;
+            item.append(code);
+          }
+          return item;
+        });
+        node.replaceChildren(...items);
+      };
+
+      const params = new URLSearchParams(window.location.search);
+      const documentInput = byId("document-id");
+      const viewInput = byId("document-view");
+      const runInput = byId("workflow-run-id");
+      documentInput.value = params.get("doc") || "";
+      viewInput.value = params.get("view") || "document";
+      runInput.value = params.get("run") || "";
+
+      const bboxLabel = (bbox) => {
+        if (!isRecord(bbox)) return "";
+        return `bbox ${bbox.x ?? "-"},${bbox.y ?? "-"},${bbox.w ?? bbox.width ?? "-"},${bbox.h ?? bbox.height ?? "-"}`;
+      };
+
+      const renderRuntime = async () => {
+        const [statusResponse, manifestResponse] = await Promise.all([
+          fetch("/v1/self-host/status"),
+          fetch("/v1/runtime/manifest"),
+        ]);
+        const status = await statusResponse.json();
+        const manifest = manifestResponse.ok ? await manifestResponse.json() : {};
+        const indicator = byId("runtime-status");
+        const summary = status.validation && status.validation.summary
+          ? status.validation.summary
+          : { services: 0, dockerNetworks: 0 };
+        indicator.dataset.ok = String(status.ok);
+        indicator.textContent = status.ok ? "Valid" : "Invalid";
+        text("runtime-summary", `${summary.services} services across ${summary.dockerNetworks} Docker networks.`);
+        text("ui-runtime", status.uiRuntime || "-");
+        text("api-runtime", status.apiRuntime || "-");
+        text("deploy-targets", safeArray(status.deploymentTargets).join(", "));
+        text("recipe-count", String(safeArray(status.recipes).length));
+        text("capability-count", String(safeArray(status.capabilities).length));
+        text("n8n-count", String(safeArray(status.n8nWorkflows).length));
+        const auth = isRecord(status.auth) ? status.auth : {};
+        const bootstrap = isRecord(auth.bootstrap) ? auth.bootstrap : {};
+        text("bootstrap-owner", `${bootstrap.owner_email_env || "OKRA_FIRST_OWNER_EMAIL"} ${bootstrap.owner_email_configured ? "configured" : "not configured"}`);
+        text("bootstrap-registration", bootstrap.registration_mode || auth.registration_mode || "-");
+        text("bootstrap-api-key", auth.api_key_configured ? "configured" : "not configured");
+        codeList("bootstrap-protected-routes", safeArray(bootstrap.protected_routes).length
+          ? safeArray(bootstrap.protected_routes)
+          : safeArray(auth.protected_routes));
+        codeList("endpoint-list", safeArray(status.endpoints));
+
+        const manifestNetworks = safeArray(manifest.docker_networks).map((network) => {
+          const docker = isRecord(network.docker) ? network.docker : {};
+          return {
+            id: network.id,
+            kind: network.kind,
+            dockerName: docker.name || network.id,
+            internal: docker.internal === true,
+            external: docker.external === true,
+            attachable: docker.attachable === true,
+            capabilityRefs: safeArray(network.capability_refs),
+          };
+        });
+        const dockerNetworks = safeArray(status.dockerNetworks).length
+          ? safeArray(status.dockerNetworks)
+          : manifestNetworks;
+        detailList("network-list", dockerNetworks.map((network) => {
+          const flags = [
+            network.kind,
+            network.internal ? "internal" : "routable",
+            network.external ? "external" : "managed",
+            network.attachable ? "attachable" : null,
+          ].filter(Boolean).join(" / ");
+          return {
+            title: `${network.id} -> ${network.dockerName || network.id}`,
+            detail: `${flags}. ${safeArray(network.capabilityRefs).join(", ") || "no direct capability refs"}`,
+          };
+        }));
+
+        const manifestServices = safeArray(manifest.services).map((service) => ({
+          id: service.id,
+          runtime: service.runtime || service.kind || "service",
+          public: service.public === true,
+          networkRefs: safeArray(service.network_refs),
+          capabilityRef: service.capability_ref || "",
+          recipeCatalogRef: service.recipe_catalog_ref || "",
+        }));
+        const services = safeArray(status.services).length ? safeArray(status.services) : manifestServices;
+        detailList("service-list", services.map((service) => ({
+          title: `${service.id}${service.public ? " (public)" : ""}`,
+          detail: `${service.runtime || service.kind || "service"} on ${safeArray(service.networkRefs).join(", ") || "no networks"}`,
+          code: service.capabilityRef || service.recipeCatalogRef || "",
+        })));
+
+        detailList("recipe-list", safeArray(status.recipes).map((recipe) => ({
+          title: recipe.id,
+          detail: `${safeArray(recipe.steps).length} steps. Writes: ${safeArray(recipe.graphWrites).join(", ") || "none"}`,
+          code: safeArray(recipe.capabilityRefs).join(", "),
+        })));
+
+        detailList("capability-list", safeArray(status.capabilities).map((capability) => ({
+          title: capability.id,
+          detail: `${capability.kind} / ${capability.namespace || "default"} / network ${capability.networkNamespace || "none"}`,
+        })));
+      };
+
+      const resetDocument = (message) => {
+        text("document-summary", message);
+        text("document-pages", "-");
+        text("document-blocks", "-");
+        text("document-findings", "-");
+        text("document-redactions", "-");
+        text("document-reviews", "-");
+        text("workflow-run-label", "-");
+        text("workflow-run-recipe", "-");
+        text("workflow-run-status", "-");
+        text("workflow-run-mode", "-");
+        detailList("block-list", [], "No blocks.");
+        detailList("finding-list", [], "No findings.");
+        detailList("redaction-list", [], "No redactions.");
+        detailList("review-list", [], "No reviews.");
+        detailList("lineage-list", [], "No lineage.");
+        detailList("capability-run-list", [], "No capability runs.");
+        text("cli-commands", "Select a document to render workflow commands.");
+        text("run-json", "{}");
+        text("graph-json", "{}");
+      };
+
+      const loadCapabilityRuns = async (graph) => {
+        const ids = safeArray(graph.lineage)
+          .map((entry) => typeof entry.run_id === "string" ? entry.run_id : "")
+          .filter((runId) => runId.startsWith("caprun_"));
+        const uniqueIds = [...new Set(ids)];
+        const responses = await Promise.all(uniqueIds.map(async (runId) => {
+          const response = await fetch(`/v1/capability-runs/${encodeURIComponent(runId)}`);
+          return response.ok ? response.json() : null;
+        }));
+        return responses.filter(Boolean);
+      };
+
+      const renderWorkflowRun = (run) => {
+        if (!run) {
+          text("workflow-run-label", "-");
+          text("workflow-run-recipe", "-");
+          text("workflow-run-status", "-");
+          text("workflow-run-mode", "-");
+          text("run-json", "{}");
+          return;
+        }
+        text("workflow-run-label", run.id || "-");
+        text("workflow-run-recipe", run.recipe_id || "-");
+        text("workflow-run-status", run.status || "-");
+        text("workflow-run-mode", run.mode || "-");
+        text("run-json", JSON.stringify(run, null, 2));
+      };
+
+      const loadWorkflowRun = async (runId) => {
+        if (!runId) {
+          renderWorkflowRun(null);
+          return null;
+        }
+        const response = await fetch(`/v1/runs/${encodeURIComponent(runId)}`);
+        if (!response.ok) {
+          renderWorkflowRun({
+            id: runId,
+            status: "not found",
+            recipe_id: "-",
+            mode: "-",
+          });
+          return null;
+        }
+        const run = await response.json();
+        renderWorkflowRun(run);
+        detailList("capability-run-list", safeArray(run.capability_runs).map((capabilityRun) => ({
+          title: capabilityRun.capability_id || capabilityRun.id,
+          detail: `${capabilityRun.status || "unknown"} / step ${capabilityRun.step_id || "-"} / writes ${safeArray(capabilityRun.graph_writes).join(", ") || "none"}`,
+          code: capabilityRun.id,
+        })), "No capability runs.");
+        return run;
+      };
+
+      const renderCliCommands = (documentId) => {
+        const baseUrl = window.location.origin;
+        text("cli-commands", [
+          `okra profile add self-host --base-url ${baseUrl} --api-key $OKRA_API_KEY`,
+          "okra profile use self-host",
+          `okra parse ${documentId} --engine mineru`,
+          `okra audit ${documentId} --standard wcag`,
+          `okra redact ${documentId} --model local`,
+          `okra open ${documentId} --view review`,
+          `okra self-host smoke ${baseUrl} --workflow both`,
+        ].join("\n"));
+      };
+
+      const loadDocument = async (documentId) => {
+        const encoded = encodeURIComponent(documentId);
+        const [statusResponse, graphResponse, reviewsResponse, findingsResponse, redactionsResponse] = await Promise.all([
+          fetch(`/document/${encoded}/status`),
+          fetch(`/v1/documents/${encoded}/graph`),
+          fetch(`/v1/documents/${encoded}/reviews`),
+          fetch(`/v1/documents/${encoded}/findings`),
+          fetch(`/v1/documents/${encoded}/redactions`),
+        ]);
+
+        if (!statusResponse.ok || !graphResponse.ok) {
+          resetDocument(`Document ${documentId} was not found.`);
+          return;
+        }
+
+        const status = await statusResponse.json();
+        const graph = await graphResponse.json();
+        const reviews = reviewsResponse.ok ? await reviewsResponse.json() : { data: [] };
+        const findings = findingsResponse.ok ? await findingsResponse.json() : { data: [] };
+        const redactions = redactionsResponse.ok ? await redactionsResponse.json() : { data: [] };
+        const capabilityRuns = await loadCapabilityRuns(graph);
+        const inferredRunId = capabilityRuns.find((run) => typeof run.workflow_run_id === "string")?.workflow_run_id || "";
+        const requestedRunId = runInput.value.trim() || inferredRunId;
+
+        if (!runInput.value.trim() && inferredRunId) {
+          runInput.value = inferredRunId;
+        }
+
+        text("document-summary", `${documentId} - ${status.phase} - ${graph.document.filename || graph.document.mime_type}`);
+        text("document-pages", String(safeArray(graph.pages).length));
+        text("document-blocks", String(safeArray(graph.blocks).length));
+        text("document-findings", String(safeArray(findings.data).length));
+        text("document-redactions", String(safeArray(redactions.data).length));
+        text("document-reviews", String(safeArray(reviews.data).length));
+
+        detailList("block-list", safeArray(graph.blocks).map((block) => ({
+          title: block.id || block.kind || "block",
+          detail: `${block.kind || "block"} / page ${block.page_number || "-"} / ${bboxLabel(block.bbox)}`,
+          code: block.text || block.created_by_run_id || "",
+        })), "No blocks.");
+
+        detailList("finding-list", safeArray(findings.data).map((finding) => {
+          const evidence = safeArray(finding.evidence)[0] || {};
+          return {
+            title: `${finding.severity || "info"} - ${finding.rule_id || finding.id}`,
+            detail: `${finding.standard || "audit"} / ${bboxLabel(evidence.bbox)} / run ${finding.created_by_run_id || "-"}`,
+            code: finding.message || finding.id,
+          };
+        }), "No findings.");
+
+        detailList("redaction-list", safeArray(redactions.data).map((redaction) => {
+          const region = safeArray(redaction.regions)[0] || {};
+          return {
+            title: `${redaction.id} - ${redaction.state || "proposed"}`,
+            detail: `${bboxLabel(region.bbox)} / run ${redaction.created_by_run_id || "-"}`,
+            code: redaction.reason || "",
+          };
+        }), "No redactions.");
+
+        detailList("review-list", safeArray(reviews.data).map((review) => ({
+          title: `${review.id} - ${review.status || "pending"}`,
+          detail: `${review.kind || "review"} for ${review.subject_type || "subject"} ${review.subject_id || "-"}`,
+          code: review.reviewer_notes || review.final_claim_level || "",
+        })), "No reviews.");
+
+        detailList("lineage-list", safeArray(graph.lineage).map((entry) => ({
+          title: `${entry.engine_id || "unknown"} - ${entry.status || "unknown"}`,
+          detail: `${entry.runtime || "runtime"} / duration ${entry.duration_ms ?? "-"}ms / ${entry.created_at || ""}`,
+          code: entry.run_id || "",
+        })), "No lineage.");
+
+        detailList("capability-run-list", capabilityRuns.map((capabilityRun) => ({
+          title: capabilityRun.capability_id || capabilityRun.id,
+          detail: `${capabilityRun.status || "unknown"} / step ${capabilityRun.step_id || "-"} / writes ${safeArray(capabilityRun.graph_writes).join(", ") || "none"}`,
+          code: capabilityRun.id,
+        })), "No capability runs.");
+
+        await loadWorkflowRun(requestedRunId);
+        renderCliCommands(documentId);
+        text("graph-json", JSON.stringify(graph, null, 2));
+      };
+
+      byId("document-form").addEventListener("submit", (event) => {
+        event.preventDefault();
+        const doc = documentInput.value.trim();
+        const view = viewInput.value;
+        const run = runInput.value.trim();
+        const next = new URL(window.location.href);
+        if (doc) next.searchParams.set("doc", doc);
+        next.searchParams.set("view", view);
+        if (run) next.searchParams.set("run", run);
+        else next.searchParams.delete("run");
+        window.history.replaceState({}, "", next);
+        if (doc) void loadDocument(doc);
+      });
+
+      renderRuntime().catch(() => {
+        const indicator = byId("runtime-status");
+        indicator.dataset.ok = "false";
+        indicator.textContent = "Unavailable";
+        text("runtime-summary", "Runtime status endpoint did not respond.");
+      });
+
+      if (documentInput.value.trim()) {
+        void loadDocument(documentInput.value.trim());
+      } else {
+        resetDocument("No document selected.");
+      }
+    </script>
+  </body>
+</html>

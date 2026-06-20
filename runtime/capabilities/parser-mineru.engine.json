@@ -1,0 +1,90 @@
+{
+  "id": "parser.mineru",
+  "name": "MinerU Parser",
+  "version": "0.1.0",
+  "description": "Layout-aware parser capability using a Railway service and persistent Hugging Face model cache.",
+  "kind": "parser",
+  "runtime": "railway_service",
+  "runtime_config": {
+    "railway_service_name": "okra-parser-mineru",
+    "image": "ghcr.io/okrapdf/okra-parser-mineru:0.1.0",
+    "dockerfile_path": "capability-images/parser-mineru/Dockerfile",
+    "start_command": "okra capability serve parser.mineru --host 0.0.0.0 --port 8080",
+    "huggingface_model_id": "opendatalab/PDF-Extract-Kit-1.0",
+    "endpoint_path": "/v1/capability-runs",
+    "protocol": "okra-capability-http/v1",
+    "base_url_env": "OKRA_CAPABILITY_PARSER_MINERU_URL",
+    "capability_run_endpoint": "/v1/capability-runs"
+  },
+  "input_schema": {
+    "type": "object",
+    "required": ["source"],
+    "properties": {
+      "source": {
+        "$ref": "okra-document-graph/v1#/source"
+      },
+      "strategy": {
+        "type": "string",
+        "enum": ["mineru", "vision_hybrid"],
+        "default": "mineru"
+      }
+    }
+  },
+  "output_schema": {
+    "$ref": "okra-document-graph/v1"
+  },
+  "reads": ["source", "document"],
+  "writes": ["pages", "blocks", "regions", "artifacts", "lineage"],
+  "env": [
+    {
+      "name": "HF_HOME",
+      "description": "Persistent Hugging Face model cache.",
+      "default": "/data/huggingface"
+    }
+  ],
+  "volumes": [
+    {
+      "name": "okra-data",
+      "mount_path": "/data",
+      "purpose": "Uploads, graph artifacts, exports, and model cache.",
+      "required": true
+    }
+  ],
+  "healthcheck": {
+    "path": "/health",
+    "timeout_seconds": 30
+  },
+  "resource_profile": {
+    "cpu_millicores": 2000,
+    "memory_mb": 4096,
+    "timeout_seconds": 600,
+    "concurrency": 1
+  },
+  "license": "Apache-2.0",
+  "commercial_ok": true,
+  "network_policy": {
+    "mode": "allowlist",
+    "allowed_hosts": ["huggingface.co"],
+    "outbound_http": true
+  },
+  "isolation": {
+    "namespace": "okra.capabilities.parser.mineru",
+    "mode": "container",
+    "network_namespace": "isolated",
+    "filesystem": {
+      "read_only_root": true,
+      "writable_paths": ["/data/huggingface", "/data/artifacts"],
+      "volume_mounts": ["okra-data"]
+    },
+    "secrets": {
+      "scope": "none"
+    },
+    "notes": "Railway/Docker service boundary for model execution with allowlisted Hugging Face egress only."
+  },
+  "offline_ok": false,
+  "metadata": {
+    "surface": "capability",
+    "recipe_role": "primary_parser",
+    "reference_template": "https://railway.com/deploy/mineru"
+  }
+}

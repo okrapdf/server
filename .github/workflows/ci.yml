@@ -1,0 +1,56 @@
+name: ci
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  build-and-test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 9.15.0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+      - name: Install poppler + tesseract (real local extraction)
+        run: sudo apt-get update && sudo apt-get install -y --no-install-recommends poppler-utils tesseract-ocr
+      - run: pnpm install --frozen-lockfile
+      - name: Build server
+        run: pnpm build
+      - name: Unit tests
+        run: pnpm test
+      - name: Integration smoke — boot, upload, parse, assert real text (no cloud)
+        env:
+          OKRA_API_KEY: ci_smoke_key
+          OKRA_BASE_URL: http://127.0.0.1:8799
+        run: |
+          node packages/okrapdf/dist/cli/bin.js serve ./runtime --port 8799 &
+          SERVER=$!
+          for i in $(seq 1 30); do
+            curl -fsS http://127.0.0.1:8799/health >/dev/null 2>&1 && break
+            sleep 1
+          done
+          node scripts/smoke.mjs
+          RESULT=$?
+          kill $SERVER 2>/dev/null || true
+          exit $RESULT
+      - name: Refuses to start without OKRA_API_KEY (fail-closed auth)
+        run: |
+          if node packages/okrapdf/dist/cli/bin.js serve ./runtime --port 8798 >/tmp/noauth.log 2>&1; then
+            echo "expected non-zero exit when OKRA_API_KEY is unset"; cat /tmp/noauth.log; exit 1
+          fi
+          grep -q "Refusing to start" /tmp/noauth.log && echo "fail-closed OK"
+
+  secret-scan:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: gitleaks
+        uses: gitleaks/gitleaks-action@v2
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

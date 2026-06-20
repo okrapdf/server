@@ -1,0 +1,358 @@
+{
+  "object": "okra_resource_catalog_fixture",
+  "version": "v1",
+  "note": "Generated resource catalog — do not edit by hand.",
+  "nouns": [
+    {
+      "name": "agents",
+      "tier": "advanced",
+      "path": "/v1/agents",
+      "description": "Registered agent definitions, runtime profiles, and agent-scoped threads.",
+      "aliases": [
+        "agent"
+      ],
+      "operations": [
+        {
+          "action": "list"
+        },
+        {
+          "action": "create",
+          "cliOmit": true
+        },
+        {
+          "action": "get"
+        },
+        {
+          "action": "update",
+          "cliOmit": true
+        },
+        {
+          "action": "delete",
+          "cliOmit": true
+        },
+        {
+          "action": "profiles"
+        }
+      ]
+    },
+    {
+      "name": "collections",
+      "tier": "core",
+      "path": "/v1/collections",
+      "description": "Named document sets for fan-out query, extraction, and export workflows.",
+      "aliases": [
+        "collection",
+        "col"
+      ],
+      "operations": [
+        {
+          "action": "list"
+        },
+        {
+          "action": "create"
+        },
+        {
+          "action": "get",
+          "cli": "okra collections show <nameOrId>"
+        },
+        {
+          "action": "query"
+        },
+        {
+          "action": "export"
+        }
+      ]
+    },
+    {
+      "name": "context",
+      "tier": "core",
+      "path": "/v1/context",
+      "description": "Context-first navigation over an owned document: structure, bounded cited snippets, grounded Q&A, and original-source links.",
+      "aliases": [
+        "ctx",
+        "contexts",
+        "source-context"
+      ],
+      "operations": [
+        {
+          "action": "resolve"
+        },
+        {
+          "action": "structure"
+        },
+        {
+          "action": "get"
+        },
+        {
+          "action": "ask"
+        },
+        {
+          "action": "open"
+        }
+      ]
+    },
+    {
+      "name": "documents",
+      "tier": "core",
+      "path": "/v1/documents",
+      "description": "Processed PDFs with markdown, page assets, extraction, chat, and document-scoped agents.",
+      "aliases": [
+        "document",
+        "docs",
+        "doc"
+      ],
+      "operations": [
+        {
+          "action": "list"
+        },
+        {
+          "action": "create",
+          "cli": "okra upload <source>"
+        },
+        {
+          "action": "get"
+        },
+        {
+          "action": "reparse"
+        },
+        {
+          "action": "verify"
+        },
+        {
+          "action": "read"
+        },
+        {
+          "action": "chat_completion",
+          "cli": "okra chat <question> --doc <docId>"
+        },
+        {
+          "action": "delete"
+        },
+        {
+          "action": "run_agent",
+          "cliOmit": true
+        }
+      ]
+    },
+    {
+      "name": "files",
+      "tier": "core",
+      "path": "/v1/files",
+      "description": "Passive file assets that can be reused by parse, render, and workflow APIs.",
+      "aliases": [
+        "file"
+      ],
+      "operations": [
+        {
+          "action": "list"
+        },
+        {
+          "action": "upload"
+        },
+        {
+          "action": "get"
+        },
+        {
+          "action": "download",
+          "cli": "okra files url <fileId>"
+        },
+        {
+          "action": "delete"
+        }
+      ]
+    },
+    {
+      "name": "jobs",
+      "tier": "core",
+      "path": "/v1/jobs",
+      "description": "Long-running parse, render, layerization, workflow, and extraction work.",
+      "aliases": [
+        "job",
+        "runs",
+        "run"
+      ],
+      "operations": [
+        {
+          "action": "list"
+        },
+        {
+          "action": "create"
+        },
+        {
+          "action": "get"
+        },
+        {
+          "action": "events"
+        },
+        {
+          "action": "cancel"
+        },
+        {
+          "action": "retry"
+        },
+        {
+          "action": "resume"
+        }
+      ]
+    },
+    {
+      "name": "sessions",
+      "tier": "internal",
+      "path": "/v1/sessions",
+      "description": "Stateful chat and task sessions around documents, agents, and environments.",
+      "aliases": [
+        "session",
+        "threads",
+        "thread"
+      ],
+      "operations": [
+        {
+          "action": "list"
+        },
+        {
+          "action": "create"
+        },
+        {
+          "action": "get"
+        },
+        {
+          "action": "events"
+        }
+      ]
+    },
+    {
+      "name": "tables",
+      "tier": "advanced",
+      "path": "/v1/tables",
+      "description": "Structured tabular outputs and ingested rows created by workflows and agents.",
+      "aliases": [
+        "table"
+      ],
+      "operations": [
+        {
+          "action": "list"
+        },
+        {
+          "action": "ingest"
+        },
+        {
+          "action": "update"
+        },
+        {
+          "action": "delete"
+        }
+      ]
+    },
+    {
+      "name": "workflows",
+      "tier": "advanced",
+      "path": "/v1/workflows",
+      "description": "Reusable hosted workflows and dataset-backed workflow runs.",
+      "aliases": [
+        "workflow"
+      ],
+      "operations": [
+        {
+          "action": "catalog"
+        },
+        {
+          "action": "create_run"
+        },
+        {
+          "action": "get_run"
+        }
+      ]
+    }
+  ],
+  "actions": [
+    {
+      "name": "audit",
+      "tier": "core",
+      "path": "/v1/workflows",
+      "description": "Run an accessibility/compliance audit (PDF/UA, WCAG 2.2 AA, Section 508) against a document. Runs on the self-host runtime; the hosted cloud API returns not_supported_on_cloud — use `okra serve`/self-host, or the okra-a11y MCP for hosted audits.",
+      "primary_resource": "documents",
+      "operations": [
+        {
+          "action": "create",
+          "cli": "okra audit <documentId> --standard wcag"
+        }
+      ]
+    },
+    {
+      "name": "extract",
+      "tier": "core",
+      "path": "/v1/documents/{document_id}/chat/completions",
+      "description": "Generate structured answers or schema-constrained extraction from processed documents. Pass cite (CLI: okra extract --cite) for opt-in per-field source citations — each extracted value grounded to its source page + bbox.",
+      "primary_resource": "documents",
+      "operations": [
+        {
+          "action": "chat_completion"
+        }
+      ]
+    },
+    {
+      "name": "layerizations",
+      "tier": "internal",
+      "path": "/v1/layerizations",
+      "description": "Create and poll document layerization jobs.",
+      "primary_resource": "jobs",
+      "operations": [
+        {
+          "action": "create"
+        },
+        {
+          "action": "get"
+        }
+      ]
+    },
+    {
+      "name": "parse",
+      "tier": "core",
+      "path": "/v1/parse",
+      "description": "Stateless or file-backed parse into markdown, nodes, text, HTML, JSON, or schema output.",
+      "primary_resource": "jobs",
+      "operations": [
+        {
+          "action": "create_parse_job"
+        }
+      ]
+    },
+    {
+      "name": "redact",
+      "tier": "core",
+      "path": "/v1/documents/{document_id}/redact",
+      "description": "Create redacted page/image surfaces for a document.",
+      "primary_resource": "documents",
+      "operations": [
+        {
+          "action": "create"
+        }
+      ]
+    },
+    {
+      "name": "renders",
+      "tier": "core",
+      "path": "/v1/renders",
+      "description": "Render a PDF from ReportLab, executable code, or a designed spec.",
+      "primary_resource": "jobs",
+      "operations": [
+        {
+          "action": "create",
+          "cli": "okra render <source>"
+        }
+      ]
+    },
+    {
+      "name": "upload",
+      "tier": "core",
+      "path": "/v1/documents",
+      "description": "Upload a PDF into the document lifecycle.",
+      "primary_resource": "documents",
+      "operations": [
+        {
+          "action": "create_document"
+        }
+      ]
+    }
+  ]
+}

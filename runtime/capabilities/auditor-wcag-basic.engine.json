@@ -1,0 +1,62 @@
+{
+  "id": "auditor.wcag.basic",
+  "name": "Basic WCAG Auditor",
+  "version": "0.1.0",
+  "description": "Checks normalized document graph records for basic accessibility findings.",
+  "kind": "auditor",
+  "runtime": "http_base_url",
+  "runtime_config": {
+    "railway_service_name": "okra-auditor-wcag",
+    "image": "ghcr.io/okrapdf/okra-auditor-wcag:0.1.0",
+    "dockerfile_path": "capability-images/auditor-wcag/Dockerfile",
+    "start_command": "okra capability serve auditor.wcag.basic --host 0.0.0.0 --port 8080",
+    "endpoint_path": "/v1/capability-runs",
+    "protocol": "okra-capability-http/v1",
+    "base_url_env": "OKRA_CAPABILITY_AUDITOR_WCAG_BASIC_URL",
+    "capability_run_endpoint": "/v1/capability-runs"
+  },
+  "input_schema": {
+    "type": "object",
+    "required": ["graph"],
+    "properties": {
+      "graph": {
+        "$ref": "okra-document-graph/v1"
+      },
+      "rules": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        }
+      }
+    }
+  },
+  "output_schema": {
+    "$ref": "okra-document-graph/v1#/findings"
+  },
+  "reads": ["document", "pages", "blocks", "artifacts"],
+  "writes": ["findings", "lineage"],
+  "license": "MIT",
+  "commercial_ok": true,
+  "network_policy": {
+    "mode": "restricted"
+  },
+  "isolation": {
+    "namespace": "okra.capabilities.auditor.wcag-basic",
+    "mode": "worker",
+    "network_namespace": "isolated",
+    "filesystem": {
+      "read_only_root": true,
+      "writable_paths": [],
+      "volume_mounts": []
+    },
+    "secrets": {
+      "scope": "none"
+    },
+    "notes": "Deterministic graph audit served through the private capability mesh without outbound network."
+  },
+  "offline_ok": true,
+  "metadata": {
+    "surface": "capability",
+    "recipe_role": "audit"
+  }
+}

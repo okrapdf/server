@@ -1,0 +1,63 @@
+{
+  "id": "parser.tesseract",
+  "name": "Tesseract Parser",
+  "version": "0.1.0",
+  "description": "Offline OCR fallback capability for self-hosted deployments that need no model download.",
+  "kind": "parser",
+  "runtime": "local_binary",
+  "runtime_config": {
+    "local_binary": "tesseract",
+    "command": ["tesseract", "{input}", "stdout", "--psm", "1"]
+  },
+  "input_schema": {
+    "type": "object",
+    "required": ["source"],
+    "properties": {
+      "source": {
+        "$ref": "okra-document-graph/v1#/source"
+      },
+      "languages": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "default": ["eng"]
+      }
+    }
+  },
+  "output_schema": {
+    "$ref": "okra-document-graph/v1"
+  },
+  "reads": ["source", "document", "pages"],
+  "writes": ["pages", "blocks", "artifacts", "lineage"],
+  "resource_profile": {
+    "cpu_millicores": 1000,
+    "memory_mb": 1024,
+    "timeout_seconds": 300,
+    "concurrency": 2
+  },
+  "license": "Apache-2.0",
+  "commercial_ok": true,
+  "network_policy": {
+    "mode": "offline"
+  },
+  "isolation": {
+    "namespace": "okra.capabilities.parser.tesseract",
+    "mode": "process",
+    "network_namespace": "none",
+    "filesystem": {
+      "read_only_root": true,
+      "writable_paths": ["/data/artifacts"],
+      "volume_mounts": ["okra-data"]
+    },
+    "secrets": {
+      "scope": "none"
+    },
+    "notes": "Offline local binary capability with no network namespace."
+  },
+  "offline_ok": true,
+  "metadata": {
+    "surface": "capability",
+    "recipe_role": "offline_parser"
+  }
+}

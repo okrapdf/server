@@ -1,0 +1,21 @@
+node_modules/
+dist/
+*.tsbuildinfo
+.turbo/
+coverage/
+
+# Local runtime state (uploaded PDFs, document graph, run records)
+data/
+/data/
+.runtime-data/
+**/.runtime-data/
+*.local
+
+# Secrets — never commit
+.env
+.env.*
+!.env.example
+
+# OS / editor
+.DS_Store
+*.log

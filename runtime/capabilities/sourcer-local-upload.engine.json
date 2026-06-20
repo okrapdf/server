@@ -1,0 +1,50 @@
+{
+  "id": "sourcer.local-upload",
+  "name": "Local Upload Sourcer",
+  "version": "0.1.0",
+  "description": "Turns browser, API, or CLI uploads into source and document graph records for a self-host runtime.",
+  "kind": "sourcer",
+  "runtime": "in_process",
+  "input_schema": {
+    "type": "object",
+    "required": ["file"],
+    "properties": {
+      "file": {
+        "type": "string",
+        "description": "Multipart upload field or local file path."
+      },
+      "metadata": {
+        "type": "object"
+      }
+    }
+  },
+  "output_schema": {
+    "$ref": "okra-document-graph/v1#/source"
+  },
+  "reads": ["source"],
+  "writes": ["source", "document", "artifacts", "lineage"],
+  "license": "MIT",
+  "commercial_ok": true,
+  "network_policy": {
+    "mode": "offline"
+  },
+  "isolation": {
+    "namespace": "okra.capabilities.sourcer.local-upload",
+    "mode": "worker",
+    "network_namespace": "none",
+    "filesystem": {
+      "read_only_root": true,
+      "writable_paths": ["/data/uploads"],
+      "volume_mounts": ["okra-data"]
+    },
+    "secrets": {
+      "scope": "none"
+    },
+    "notes": "Upload writes are limited to the shared Okra data volume."
+  },
+  "offline_ok": true,
+  "metadata": {
+    "surface": "capability",
+    "recipe_role": "ingest"
+  }
+}

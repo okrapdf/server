@@ -1,0 +1,1 @@
+export const USER_DOCUMENT_PAGE_LIMIT = 2000;

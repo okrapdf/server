@@ -1,0 +1,59 @@
+{
+  "id": "redactor.policy.basic",
+  "name": "Basic Policy Redactor",
+  "version": "0.1.0",
+  "description": "Creates redaction proposals from configured terms, regions, or findings and can emit a redacted artifact.",
+  "kind": "redactor",
+  "runtime": "http_base_url",
+  "runtime_config": {
+    "railway_service_name": "okra-redactor-policy",
+    "image": "ghcr.io/okrapdf/okra-redactor-policy:0.1.0",
+    "dockerfile_path": "capability-images/redactor-policy/Dockerfile",
+    "start_command": "okra capability serve redactor.policy.basic --host 0.0.0.0 --port 8080",
+    "endpoint_path": "/v1/capability-runs",
+    "protocol": "okra-capability-http/v1",
+    "base_url_env": "OKRA_CAPABILITY_REDACTOR_POLICY_BASIC_URL",
+    "capability_run_endpoint": "/v1/capability-runs"
+  },
+  "input_schema": {
+    "type": "object",
+    "required": ["graph", "policy"],
+    "properties": {
+      "graph": {
+        "$ref": "okra-document-graph/v1"
+      },
+      "policy": {
+        "type": "object"
+      }
+    }
+  },
+  "output_schema": {
+    "$ref": "okra-document-graph/v1#/redactions"
+  },
+  "reads": ["document", "pages", "blocks", "regions", "findings"],
+  "writes": ["redactions", "artifacts", "lineage"],
+  "license": "MIT",
+  "commercial_ok": true,
+  "network_policy": {
+    "mode": "restricted"
+  },
+  "isolation": {
+    "namespace": "okra.capabilities.redactor.policy-basic",
+    "mode": "worker",
+    "network_namespace": "isolated",
+    "filesystem": {
+      "read_only_root": true,
+      "writable_paths": ["/data/artifacts"],
+      "volume_mounts": ["okra-data"]
+    },
+    "secrets": {
+      "scope": "none"
+    },
+    "notes": "Policy redaction runs through the private capability mesh and writes only derived artifacts and graph proposals."
+  },
+  "offline_ok": true,
+  "metadata": {
+    "surface": "capability",
+    "recipe_role": "redact"
+  }
+}

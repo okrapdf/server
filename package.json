@@ -1,0 +1,17 @@
+{
+  "name": "okrapdf-server",
+  "version": "0.1.0-beta.0",
+  "private": true,
+  "description": "Self-hostable okraPDF document runtime — parse, audit, and redact PDFs locally. No okraPDF cloud, no telemetry. (Beta)",
+  "license": "MIT",
+  "packageManager": "pnpm@9.15.0",
+  "engines": {
+    "node": ">=22"
+  },
+  "scripts": {
+    "build": "pnpm -F @okrapdf/sdk build",
+    "serve": "OKRA_DATA_DIR=${OKRA_DATA_DIR:-./data} node packages/okrapdf/dist/cli/bin.js serve ./runtime --host 0.0.0.0 --port 8787",
+    "doctor": "node scripts/doctor.mjs",
+    "test": "pnpm -F @okrapdf/sdk exec vitest run src/cli/commands/local-capabilities.test.ts"
+  }
+}
