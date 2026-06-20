@@ -50,7 +50,7 @@ function runCommand(command: string, args: string[]): string {
 }
 
 function detectTool(name: ToolName): LocalToolAvailability {
-  const result = spawnSync('/bin/zsh', ['-lc', `command -v ${name}`], { encoding: 'utf8' });
+  const result = spawnSync('/bin/sh', ['-lc', `command -v ${name}`], { encoding: 'utf8' });
   const path = result.status === 0 ? (result.stdout || '').trim() : '';
   return {
     available: path.length > 0,
