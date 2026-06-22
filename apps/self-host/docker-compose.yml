@@ -1,0 +1,25 @@
+# okra self-host — the whole thing: a durable workerd orchestrator + parser container(s).
+#   docker compose up --build
+# Orchestrator API on 127.0.0.1:8787 (loopback by default — the beta API is unauthenticated;
+# to expose on the network put it behind your own auth/ingress, or set HOST_BIND=0.0.0.0).
+name: okra-self-host
+
+services:
+  orchestrator:
+    build: ./orchestrator
+    ports:
+      - "${HOST_BIND:-127.0.0.1}:${PORT:-8787}:8787"
+    volumes:
+      - okra-do-data:/data        # durable DocumentAgent state (the page results + checkpoints)
+    depends_on:
+      liteparse:
+        condition: service_healthy   # don't accept work until the parser is ready
+    restart: unless-stopped
+
+  liteparse:
+    build: ./parsers/liteparse
+    # internal-only; the orchestrator reaches it at http://liteparse:8080
+    restart: unless-stopped
+
+volumes:
+  okra-do-data:

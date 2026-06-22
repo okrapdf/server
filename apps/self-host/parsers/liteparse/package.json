@@ -1,0 +1,13 @@
+{
+  "name": "okra-parser-liteparse",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "okra liteparse parser container — native @llamaindex/liteparse behind the uniform HTTP parser contract.",
+  "scripts": {
+    "start": "node server.mjs"
+  },
+  "dependencies": {
+    "@llamaindex/liteparse": "^2.1.2"
+  }
+}

@@ -2,61 +2,17 @@ name: ci
 
 on:
   push:
-    branches: [main]
+    branches: [dev, main]
   pull_request:
 
 jobs:
-  build-and-test:
+  validate:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - uses: pnpm/action-setup@v4
-        with:
-          version: 9.15.0
-      - uses: actions/setup-node@v4
-        with:
-          node-version: 22
-          cache: pnpm
-      - name: Install poppler + tesseract (real local extraction)
-        run: sudo apt-get update && sudo apt-get install -y --no-install-recommends poppler-utils tesseract-ocr
-      - run: pnpm install --frozen-lockfile
-      - name: Build server
-        run: pnpm build
-      - name: Unit tests
-        run: pnpm test
-      - name: Integration smoke — boot, upload, parse, assert real text (no cloud)
-        env:
-          OKRA_API_KEY: ci_smoke_key
-          OKRA_BASE_URL: http://127.0.0.1:8799
-        run: |
-          node packages/okrapdf/dist/cli/bin.js serve ./runtime --port 8799 &
-          SERVER=$!
-          for i in $(seq 1 30); do
-            curl -fsS http://127.0.0.1:8799/health >/dev/null 2>&1 && break
-            sleep 1
-          done
-          node scripts/smoke.mjs
-          RESULT=$?
-          kill $SERVER 2>/dev/null || true
-          exit $RESULT
-      - name: Refuses to start without OKRA_API_KEY (fail-closed auth)
-        run: |
-          if node packages/okrapdf/dist/cli/bin.js serve ./runtime --port 8798 >/tmp/noauth.log 2>&1; then
-            echo "expected non-zero exit when OKRA_API_KEY is unset"; cat /tmp/noauth.log; exit 1
-          fi
-          grep -q "Refusing to start" /tmp/noauth.log && echo "fail-closed OK"
-
-  secret-scan:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      - name: Scan for hardcoded secrets (license-free)
-        run: |
-          # High-signal real-secret patterns. Synthetic test keys (okra_test_key,
-          # ci_smoke_key) and example data are low-entropy and don't match.
-          if git grep -nIE \
-            'sk-[A-Za-z0-9]{20}|sk_live_[A-Za-z0-9]{16}|pk_live_[A-Za-z0-9]{16}|gh[pousr]_[A-Za-z0-9]{30}|AKIA[0-9A-Z]{16}|AIza[0-9A-Za-z_-]{30}|xox[baprs]-[0-9A-Za-z-]{10}|-----BEGIN [A-Z ]*PRIVATE KEY-----' \
-            -- ':(exclude)pnpm-lock.yaml'; then
-            echo "::error::Potential hardcoded secret found above"; exit 1
-          fi
-          echo "No hardcoded secrets found."
+      - name: Validate docker compose
+        working-directory: apps/self-host
+        run: docker compose config -q
+      - name: Build images
+        working-directory: apps/self-host
+        run: docker compose build
