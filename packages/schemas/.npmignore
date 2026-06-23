@@ -1,5 +1,0 @@
-**/*.test.ts
-tests/
-tsconfig.json
-vitest.config.*
-node_modules/

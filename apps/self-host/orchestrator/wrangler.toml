@@ -1,0 +1,24 @@
+name = "okra-self-host-orchestrator"
+main = "src/index.ts"
+compatibility_date = "2025-05-01"
+compatibility_flags = ["nodejs_compat"]
+
+# Bundled self-host UI (built from apps/self-host/web → ./public). Served first
+# for matching files; misses fall through to the worker, which routes /v1/* to
+# the API and everything else back to ASSETS with an SPA fallback to index.html.
+[assets]
+directory = "./public"
+binding = "ASSETS"
+
+# One Durable Object per document — the durable parse ledger lives in its SQLite.
+[[durable_objects.bindings]]
+name = "DOCUMENT_AGENT"
+class_name = "DocumentAgent"
+
+[[migrations]]
+tag = "v1"
+new_sqlite_classes = ["DocumentAgent"]
+
+# Parser container URL (docker-compose service DNS). SH-3 generalizes to OKRA_PARSER_<id>_URL.
+[vars]
+OKRA_PARSER_LITEPARSE_URL = "http://liteparse:8080"
