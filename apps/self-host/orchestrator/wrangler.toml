@@ -15,9 +15,17 @@ binding = "ASSETS"
 name = "DOCUMENT_AGENT"
 class_name = "DocumentAgent"
 
+[[durable_objects.bindings]]
+name = "OKRA_INDEX"
+class_name = "WorkspaceIndex"
+
 [[migrations]]
 tag = "v1"
 new_sqlite_classes = ["DocumentAgent"]
+
+[[migrations]]
+tag = "v2"
+new_sqlite_classes = ["WorkspaceIndex"]
 
 # Parser container URLs (docker-compose service DNS), resolved generically as
 # OKRA_PARSER_<ID>_URL. The combined single-container build rewrites these to loopback.

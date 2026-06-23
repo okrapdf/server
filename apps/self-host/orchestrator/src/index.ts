@@ -2,9 +2,9 @@
  * okra self-host orchestrator entrypoint (workerd).
  * Thin HTTP front door → per-document DocumentAgent (the durable run lives there).
  */
-import { DocumentAgent, type Env } from './document-agent';
+import { DocumentAgent, WorkspaceIndex, type Env } from './document-agent';
 
-export { DocumentAgent };
+export { DocumentAgent, WorkspaceIndex };
 
 const MAX_UPLOAD_BYTES = 64 * 1024 * 1024; // 64 MiB cap on request bodies
 
@@ -64,6 +64,11 @@ async function serveAsset(req: Request, env: Env): Promise<Response> {
   return res;
 }
 
+async function listIndex(env: Env) {
+  try { return await env.OKRA_INDEX.get(env.OKRA_INDEX.idFromName('workspace')).list(); }
+  catch { return []; }
+}
+
 export default {
   async fetch(req: Request, env: Env): Promise<Response> {
     const url = new URL(req.url);
@@ -71,7 +76,16 @@ export default {
       return json({ ok: true, service: 'okra-self-host-orchestrator', parsers: await parserHealth(env) });
     }
 
-    const m = url.pathname.match(/^\/v1\/documents\/([^/]+)\/(upload|parse|status|graph)$/);
+    if (url.pathname === '/v1/documents') {
+      if (req.method !== 'GET') return json({ error: 'method_not_allowed' }, 405);
+      return json({ documents: await listIndex(env) });
+    }
+    if (url.pathname === '/v1/jobs') {
+      if (req.method !== 'GET') return json({ error: 'method_not_allowed' }, 405);
+      return json({ jobs: await listIndex(env) });
+    }
+
+    const m = url.pathname.match(/^\/v1\/documents\/([^/]+)\/(upload|parse|status|graph|pdf)$/);
     if (!m) {
       // API paths stay JSON 404s; everything else is the bundled self-host UI
       // (wrangler [assets]), with an SPA fallback to index.html for navigations.
@@ -116,6 +130,15 @@ export default {
       if (action === 'graph') {
         if (req.method !== 'GET') return json({ error: 'method_not_allowed' }, 405);
         return json(await stub.getGraph());
+      }
+      if (action === 'pdf') {
+        if (req.method !== 'GET') return json({ error: 'method_not_allowed' }, 405);
+        const b64 = await stub.getPdfBase64();
+        if (!b64) return json({ error: 'not_found' }, 404);
+        const bin = atob(b64);
+        const bytes = new Uint8Array(bin.length);
+        for (let i = 0; i < bin.length; i += 1) bytes[i] = bin.charCodeAt(i);
+        return new Response(bytes, { headers: { 'content-type': 'application/pdf', 'cache-control': 'private, max-age=300' } });
       }
     } catch (e) {
       return json({ error: e instanceof Error ? e.message : String(e) }, 500);

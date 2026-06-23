@@ -21,6 +21,7 @@ import { Agent } from 'agents';
 
 export interface Env {
   DOCUMENT_AGENT: DurableObjectNamespace<DocumentAgent>;
+  OKRA_INDEX: DurableObjectNamespace<WorkspaceIndex>;
   /** Per-parser base URLs, resolved generically as OKRA_PARSER_<ID>_URL. */
   OKRA_PARSER_LITEPARSE_URL: string;
   OKRA_PARSER_GEMINI_VISION_URL?: string;
@@ -107,6 +108,7 @@ export class DocumentAgent extends Agent<Env, RunState> {
     });
 
     void this.runFiber('parse', (ctx) => this.parseLoop(ctx, epoch));
+    await this.syncIndex();
     return { documentId: opts.documentId, status: 'running', pagesTotal: pageCount, epoch };
   }
 
@@ -127,6 +129,12 @@ export class DocumentAgent extends Agent<Env, RunState> {
       status: s.status,
       pages: Object.keys(s.pages).map(Number).sort((a, b) => a - b).map((p) => ({ pageNumber: p, blocks: s.pages[p] })),
     };
+  }
+
+  /** The stored source PDF as base64 (so the UI can render any listed doc, not just freshly-uploaded ones). */
+  async getPdfBase64(): Promise<string | null> {
+    const src = this.sql`SELECT b64 FROM source WHERE id=1` as unknown as Array<{ b64: string }>;
+    return src.length ? src[0].b64 : null;
   }
 
   // ── durable fiber: the parse loop ───────────────────────────────────────
@@ -164,6 +172,7 @@ export class DocumentAgent extends Agent<Env, RunState> {
     if (this.state.epoch !== epoch) return;
     const failed = Object.keys(this.state.errors).length;
     this.setState({ ...this.state, status: failed > 0 ? 'completed_with_errors' : 'completed', updatedAt: Date.now() });
+    await this.syncIndex();
   }
 
   /** SDK calls this after restart for an interrupted fiber → resume the CURRENT run. */
@@ -178,5 +187,41 @@ export class DocumentAgent extends Agent<Env, RunState> {
 
   private ensureSource(): void {
     this.sql`CREATE TABLE IF NOT EXISTS source (id INTEGER PRIMARY KEY CHECK (id = 1), b64 TEXT NOT NULL)`;
+  }
+
+  private async syncIndex(): Promise<void> {
+    const s = this.state;
+    const rec = { documentId: s.documentId, fileName: s.fileName, parserId: s.parserId,
+      status: s.status, pagesTotal: s.pagesTotal, pagesDone: s.pagesDone,
+      pagesFailed: s.pagesFailed, createdAt: s.createdAt, updatedAt: s.updatedAt };
+    try { await this.env.OKRA_INDEX.get(this.env.OKRA_INDEX.idFromName('workspace')).upsert(rec); } catch { /* index is best-effort */ }
+  }
+}
+
+export interface IndexRecord {
+  documentId: string;
+  fileName: string | null;
+  parserId: string;
+  status: RunStatus;
+  pagesTotal: number;
+  pagesDone: number;
+  pagesFailed: number;
+  createdAt: number;
+  updatedAt: number;
+}
+
+export interface WorkspaceIndexState {
+  docs: Record<string, IndexRecord>;
+}
+
+export class WorkspaceIndex extends Agent<Env, WorkspaceIndexState> {
+  initialState: WorkspaceIndexState = { docs: {} };
+
+  async upsert(rec: IndexRecord): Promise<void> {
+    this.setState({ docs: { ...this.state.docs, [rec.documentId]: rec } });
+  }
+
+  async list(): Promise<IndexRecord[]> {
+    return Object.values(this.state.docs).sort((a, b) => b.updatedAt - a.updatedAt);
   }
 }
