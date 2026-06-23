@@ -1,0 +1,6 @@
+# Keep the deploy upload lean — the single-container Dockerfile only needs
+# orchestrator/ + parsers/liteparse/. (node_modules is already gitignored.)
+web
+**/.wrangler
+**/.runtime-data
+**/.DS_Store

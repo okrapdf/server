@@ -27,6 +27,34 @@ curl -fsSL https://raw.githubusercontent.com/okrapdf/server/main/apps/self-host/
 
 That's it — you now have a durable PDF parser running locally.
 
+## Deploy to a public URL (Railway)
+
+Want an HTTPS URL instead of `127.0.0.1`? The repo ships a **single-container** build
+([`Dockerfile`](Dockerfile) + [`start.sh`](start.sh)) that runs the orchestrator and parser
+together in one image — point any container host at it. On [Railway](https://railway.com) it's
+five commands (`npm i -g @railway/cli && railway login` first):
+
+```bash
+cd apps/self-host
+railway init --name okra-self-host                  # create the project
+railway add --service okra --variables PORT=8787    # one service; orchestrator on :8787
+railway volume add -m /data                         # durable parse ledger (DO SQLite)
+railway up                                          # build + deploy the single-container image
+railway domain -p 8787                              # → https://<name>.up.railway.app
+```
+
+`railway up` auto-detects the `Dockerfile`; `PORT=8787` tells Railway's proxy which port to route
+to, and the `/data` volume keeps durable state across restarts. Then parse against the public URL
+exactly like the `127.0.0.1:8787` examples below.
+
+> **Why one container?** Compose runs the orchestrator and parser as two services on a private
+> network. Many hosts (Railway included) only expose one public port and an **IPv6-only** private
+> network — so the single-container image has the orchestrator reach the parser over loopback
+> (`127.0.0.1`), with no private DNS to get wrong.
+
+> **Security:** the API is unauthenticated (see **Status & security**) and a public URL is open to
+> anyone. Put it behind your own auth/ingress before using it for anything real.
+
 ## Parse a PDF
 
 ```bash
