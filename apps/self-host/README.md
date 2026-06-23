@@ -71,6 +71,23 @@ curl -s 127.0.0.1:8787/v1/documents/mydoc/graph | jq
 
 You can also `POST …/upload` JSON: `{"pdf_base64": "...", "file_name": "your.pdf", "parser": "liteparse"}`.
 
+## Choosing a parser
+
+Two parsers ship out of the box — pick one per upload with `parser` (JSON body) or `?parser=` (raw upload). `liteparse` is the default.
+
+| `parser` | What | Needs |
+|---|---|---|
+| `liteparse` *(default)* | Native, local, fast. Real text + bounding boxes, no network, no key. | — |
+| `gemini-vision` | Google Gemini vision layout parsing — the same parser as okraPDF cloud's `/parse`. Markdown-grade structure (titles, lists, HTML tables) with bboxes. | `GOOGLE_API_KEY` (BYOK) |
+
+```bash
+# raw upload, choose the parser via query param
+curl -s '127.0.0.1:8787/v1/documents/mydoc/upload?parser=gemini-vision' \
+  -H 'content-type: application/pdf' --data-binary @your.pdf
+```
+
+`gemini-vision` is **bring-your-own-key**: set `GOOGLE_API_KEY` (or `GEMINI_API_KEY`) in your environment / `.env` before `docker compose up`. Without a key it stays available but returns an error when selected; `liteparse` keeps working regardless.
+
 ## What you get
 
 - **A durable orchestrator** (Cloudflare `workerd` + the Agents SDK). One Durable Object per
@@ -78,16 +95,17 @@ You can also `POST …/upload` JSON: `{"pdf_base64": "...", "file_name": "your.p
   stay completed, and the final result has every page exactly once.
 - **Parsers as containers.** Parsing runs in its own container behind a tiny HTTP contract, so
   it can be **native and fast** (no WASM limits). Ships with **liteparse** (native, local, real
-  bounding boxes). Swap or add parsers without touching the orchestrator.
+  bounding boxes) and **gemini-vision** (Google Gemini, BYOK — the cloud `/parse` parser). Pick
+  one per upload; swap or add more without touching the orchestrator.
 - **Bbox-cited output.** Every text block carries a 0–1 bounding box, so results are citable.
 
 ```
             ┌──────────────────────── docker compose ────────────────────────┐
             │  orchestrator  (workerd + Agents — durable run, 127.0.0.1:8787)  │
-            │      │  calls a parser over HTTP (uniform contract)             │
-            │      ▼                                                          │
-            │  liteparse container   (native, /health /pages /parse)         │
-            │  …add more: dots-ocr (GPU), gemini (cloud) — same contract     │
+            │      │  calls the chosen parser over HTTP (uniform contract)    │
+            │      ├──▶ liteparse container      (native, local — default)    │
+            │      └──▶ gemini-vision container  (Google Gemini, BYOK)        │
+            │  …add more: dots-ocr (GPU), docling — same contract            │
             └────────────────────────────────────────────────────────────────┘
 ```
 
@@ -110,7 +128,10 @@ Add it to `docker-compose.yml` and point the orchestrator at it
 |---|---|---|
 | `PORT` | `8787` | orchestrator API port |
 | `HOST_BIND` | `127.0.0.1` | host interface the API binds to (set `0.0.0.0` to expose on the network) |
-| `OKRA_PARSER_LITEPARSE_URL` | `http://liteparse:8080` | parser container URL |
+| `OKRA_PARSER_LITEPARSE_URL` | `http://liteparse:8080` | liteparse parser container URL |
+| `OKRA_PARSER_GEMINI_VISION_URL` | `http://gemini-vision:8081` | gemini-vision parser container URL |
+| `GOOGLE_API_KEY` / `GEMINI_API_KEY` | — | **gemini-vision** — Google Gemini API key (BYOK). Required only to use `parser=gemini-vision`. |
+| `OKRA_GEMINI_MODEL` | `gemini-3-flash-preview` | **gemini-vision** — override the Gemini model. |
 
 Durable state (page results + checkpoints) persists to the `okra-do-data` volume — back it up to
 keep in-flight runs across `docker compose down`.

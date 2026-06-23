@@ -17,13 +17,19 @@ COPY parsers/liteparse/package.json ./liteparse/package.json
 RUN cd liteparse && npm install --omit=dev --no-audit --no-fund
 COPY parsers/liteparse/server.mjs ./liteparse/server.mjs
 
+# --- gemini-vision parser deps (pdf-lib; Gemini over global fetch, BYOK GOOGLE_API_KEY) ---
+COPY parsers/gemini-vision/package.json ./gemini-vision/package.json
+RUN cd gemini-vision && npm install --omit=dev --no-audit --no-fund
+COPY parsers/gemini-vision/server.mjs ./gemini-vision/server.mjs
+
 # --- orchestrator deps (wrangler + workerd + agents) ---
 COPY orchestrator/package.json ./orchestrator/package.json
 RUN cd orchestrator && npm install --no-audit --no-fund
 COPY orchestrator/tsconfig.json orchestrator/wrangler.toml ./orchestrator/
-# The parser is in THIS container on loopback (compose points at the 'liteparse'
-# service DNS instead) — rewrite the orchestrator's parser URL accordingly.
-RUN sed -i 's#http://liteparse:8080#http://127.0.0.1:8080#' orchestrator/wrangler.toml
+# The parsers are in THIS container on loopback (compose points at the service
+# DNS instead) — rewrite the orchestrator's parser URLs accordingly.
+RUN sed -i 's#http://liteparse:8080#http://127.0.0.1:8080#' orchestrator/wrangler.toml \
+ && sed -i 's#http://gemini-vision:8081#http://127.0.0.1:8081#' orchestrator/wrangler.toml
 COPY orchestrator/src ./orchestrator/src
 COPY orchestrator/public ./orchestrator/public
 

@@ -21,5 +21,16 @@ services:
     # internal-only; the orchestrator reaches it at http://liteparse:8080
     restart: unless-stopped
 
+  # Optional second parser: Google Gemini vision (the cloud /parse "gemini-vision").
+  # BYOK — set GOOGLE_API_KEY (or GEMINI_API_KEY) in your env / .env to use it.
+  # Pick it per upload with parser="gemini-vision"; liteparse stays the default.
+  gemini-vision:
+    build: ./parsers/gemini-vision
+    # internal-only; the orchestrator reaches it at http://gemini-vision:8081
+    environment:
+      - GOOGLE_API_KEY=${GOOGLE_API_KEY:-}
+      - GEMINI_API_KEY=${GEMINI_API_KEY:-}
+    restart: unless-stopped
+
 volumes:
   okra-do-data:

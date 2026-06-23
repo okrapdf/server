@@ -21,7 +21,9 @@ import { Agent } from 'agents';
 
 export interface Env {
   DOCUMENT_AGENT: DurableObjectNamespace<DocumentAgent>;
+  /** Per-parser base URLs, resolved generically as OKRA_PARSER_<ID>_URL. */
   OKRA_PARSER_LITEPARSE_URL: string;
+  OKRA_PARSER_GEMINI_VISION_URL?: string;
   /** Static self-host UI, bound via wrangler [assets]. */
   ASSETS: Fetcher;
 }
@@ -59,9 +61,13 @@ const INITIAL: RunState = {
   pagesTotal: 0, pagesDone: 0, pagesFailed: 0, pages: {}, errors: {}, createdAt: 0, updatedAt: 0,
 };
 
+/** Resolve a parser id to its container URL via OKRA_PARSER_<ID>_URL (e.g.
+ *  'liteparse' → OKRA_PARSER_LITEPARSE_URL, 'gemini-vision' → OKRA_PARSER_GEMINI_VISION_URL). */
 function parserBaseUrl(env: Env, parserId: string): string {
-  if (parserId === 'liteparse') return env.OKRA_PARSER_LITEPARSE_URL;
-  throw new Error(`no URL configured for parser '${parserId}'`);
+  const key = `OKRA_PARSER_${parserId.replace(/[^a-zA-Z0-9]+/g, '_').toUpperCase()}_URL`;
+  const url = (env as unknown as Record<string, string | undefined>)[key];
+  if (url) return url;
+  throw new Error(`no URL configured for parser '${parserId}' (set ${key})`);
 }
 
 async function callParser<T>(baseUrl: string, path: string, body: unknown): Promise<T> {

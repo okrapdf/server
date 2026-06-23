@@ -1,0 +1,13 @@
+{
+  "name": "okra-parser-gemini-vision",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "okra gemini-vision parser container — Google Gemini vision layout parsing behind the uniform okra parser HTTP contract (BYOK: GOOGLE_API_KEY).",
+  "scripts": {
+    "start": "node server.mjs"
+  },
+  "dependencies": {
+    "pdf-lib": "^1.17.1"
+  }
+}

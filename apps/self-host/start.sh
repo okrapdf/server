@@ -1,12 +1,16 @@
 #!/bin/sh
-# Single-container boot (see Dockerfile): liteparse (parser) in the background on
-# loopback :8080, wait until it's healthy, then exec the orchestrator (workerd)
-# in the foreground on :8787. The orchestrator is PID 1 so the host tracks it.
+# Single-container boot (see Dockerfile): the parser sidecars in the background on
+# loopback (liteparse :8080, gemini-vision :8081), wait until liteparse (the
+# default) is healthy, then exec the orchestrator (workerd) in the foreground on
+# :8787. The orchestrator is PID 1 so the host tracks it.
 set -eu
 
 echo "[start] launching liteparse parser on 127.0.0.1:8080"
-# Pin liteparse to 8080 explicitly so it ignores any injected PORT (=8787).
+# Pin each parser's port explicitly so they ignore any injected PORT (=8787).
 ( cd /app/liteparse && PORT=8080 node server.mjs ) &
+
+echo "[start] launching gemini-vision parser on 127.0.0.1:8081 (BYOK GOOGLE_API_KEY)"
+( cd /app/gemini-vision && PORT=8081 node server.mjs ) &
 
 echo "[start] waiting for liteparse /health ..."
 i=0

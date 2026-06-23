@@ -19,6 +19,8 @@ class_name = "DocumentAgent"
 tag = "v1"
 new_sqlite_classes = ["DocumentAgent"]
 
-# Parser container URL (docker-compose service DNS). SH-3 generalizes to OKRA_PARSER_<id>_URL.
+# Parser container URLs (docker-compose service DNS), resolved generically as
+# OKRA_PARSER_<ID>_URL. The combined single-container build rewrites these to loopback.
 [vars]
 OKRA_PARSER_LITEPARSE_URL = "http://liteparse:8080"
+OKRA_PARSER_GEMINI_VISION_URL = "http://gemini-vision:8081"
